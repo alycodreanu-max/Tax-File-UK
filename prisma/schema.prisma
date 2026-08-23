@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organisation {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clients   Client[]
+  users     OrganisationUser[]
+}
+
+model User {
+  id            String             @id @default(cuid())
+  email         String             @unique
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  organisations OrganisationUser[]
+}
+
+model OrganisationUser {
+  id             String       @id @default(cuid())
+  organisationId String
+  userId         String
+  role           String
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([organisationId, userId])
+  @@index([userId])
+}
+
+model Client {
+  id             String       @id @default(cuid())
+  organisationId String
+  displayName    String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  returns        TaxReturn[]
+
+  @@index([organisationId])
+}
+
+model TaxReturn {
+  id             String   @id @default(cuid())
+  clientId       String
+  returnType     String
+  taxYear        String
+  status         String   @default("DRAFT")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  client         Client   @relation(fields: [clientId], references: [id])
+  submissions    Submission[]
+
+  @@index([clientId, taxYear])
+}
+
+model Submission {
+  id             String    @id @default(cuid())
+  taxReturnId    String
+  provider       String
+  status         String
+  receiptRef     String?
+  submittedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  taxReturn      TaxReturn @relation(fields: [taxReturnId], references: [id])
+
+  @@index([taxReturnId])
+}
